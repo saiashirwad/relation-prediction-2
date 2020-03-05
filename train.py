@@ -24,5 +24,6 @@ ent_embed, rel_embed = get_init_embed()
 for epoch in range(n_epochs):
     for i, batch in enumerate(dataloader):
         triplets = torch.stack(batch).t() 
-        triplets, labels = negative_sampling(triplets, n_ent, 10)
+        triplets, labels = negative_sampling(triplets, n_ent, negative_rate)
+        
 
