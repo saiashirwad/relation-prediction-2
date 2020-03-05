@@ -22,7 +22,8 @@ dataloader = DataLoader(kg_train, batch_size=batch_size, shuffle=False, pin_memo
 n_ent, n_rel = kg_train.n_ent, kg_train.n_rel
 
 ent_embed, rel_embed = get_init_embed()
-model = KGAtt(n_ent, n_rel, 100, 100, 0) 
+# model = KGAtt(n_ent, n_rel, 100, 100, 0) 
+model = MultiHeadKGAtt(n_ent, n_rel, 100, 200, 100, 10)
 
 for epoch in range(1):
     for i, batch in enumerate(dataloader):
