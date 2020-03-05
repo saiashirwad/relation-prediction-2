@@ -1,6 +1,6 @@
 from torchkge.data.DataLoader import *
 import numpy as np 
-
+import torch 
 def text2vec(file):
     with open(file, 'r') as f:
         lines = f.readlines()
@@ -57,4 +57,6 @@ def negative_sampling(pos_samples, num_entity, negative_rate):
 def get_init_embed(datafolder='data/FB15k-237/'):
     ent_embed = np.loadtxt(f'{datafolder}entity2vec.txt')
     rel_embed = np.loadtxt(f'{datafolder}relation2vec.txt')
+
+    return torch.from_numpy(ent_embed).to(torch.float32), torch.from_numpy(rel_embed).to(torch.float32)
 
