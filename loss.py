@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-def loss_func(triplets, neg_sampling_ratio, ent_embed, rel_embed):
+def loss_func(triplets, neg_sampling_ratio, ent_embed, rel_embed, device='cpu'):
     """
-    Finalize order of src, dst, rel in triplets
+    Triplets order: src, dst, rel
     """
     n = len(triplets)
     if type(triplets) == np.ndarray:
@@ -31,7 +31,7 @@ def loss_func(triplets, neg_sampling_ratio, ent_embed, rel_embed):
     neg_norm = torch.norm(x, p=2, dim=1)
 
     # y = torch.ones(neg_sampling_ratio * n)
-    y = torch.ones(len(pos_triplets))
+    y = torch.ones(len(pos_triplets)).to(device)
 
     loss_fn = nn.MarginRankingLoss(margin=5)
     loss = loss_fn(pos_norm, neg_norm, y)

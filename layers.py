@@ -9,29 +9,33 @@ class KGAtt(nn.Module):
     """
     Single Hop Version
     """
-    def __init__(self, n_entities, n_relations, in_dim, out_dim, concat=True):
+    def __init__(self, n_entities, n_relations, in_dim, out_dim, concat=True, device='cpu'):
         super(KGAtt, self).__init__()
 
         self.n_entities = n_entities
         self.n_relations = n_relations
         self.in_dim = in_dim
         self.out_dim = out_dim
+        self.device = device
 
-        self.a = nn.Linear(3 * in_dim, out_dim)
+        self.a = nn.Linear(3 * in_dim, out_dim).to(device)
         nn.init.xavier_normal_(self.a.weight.data, gain=1.414)
 
         self.concat = concat
 
-        self.a_2 = nn.Linear(out_dim, 1)
+        self.a_2 = nn.Linear(out_dim, 1).to(device)
         nn.init.xavier_normal_(self.a_2.weight.data, gain=1.414)
 
     def forward(self, triplets, ent_embed, rel_embed):
+        triplets = triplets.to(self.device)
+        ent_embed = ent_embed.to(self.device)
+        rel_embed = rel_embed.to(self.device)
 
         # N = triplets.shape[0]
         N = self.n_entities
         # print(triplets.shape)
 
-        h = torch.cat((ent_embed[triplets[:, 0]], rel_embed[triplets[:, 2]], ent_embed[triplets[:, 1]]), dim=1)
+        h = torch.cat((ent_embed[triplets[:, 0]], rel_embed[triplets[:, 2]], ent_embed[triplets[:, 1]]), dim=1).to(self.device)
         c = self.a(h)
         b = F.leaky_relu(self.a_2(c))
         e_b = torch.exp(b)
@@ -61,8 +65,9 @@ class KGAtt(nn.Module):
 
 
 class MultiHeadKGAtt(nn.Module):
-    def __init__(self, n_entities, n_relations, in_dim, hidden_dim, out_dim, num_heads):
-        super(MultiHeadKGAtt, self).__init__()
+    def __init__(self, n_entities, n_relations, in_dim, hidden_dim, out_dim, num_heads, device='cpu'):
+        # super(MultiHeadKGAtt, self).__init__()
+        super().__init__()
 
         self.n_entities = n_entities
         self.n_relations = n_relations
@@ -70,17 +75,18 @@ class MultiHeadKGAtt(nn.Module):
         self.hidden_dim = hidden_dim
         self.out_dim = out_dim
         self.num_heads = num_heads
+        self.device = device
 
-        self.att1 = nn.ModuleList([KGAtt(n_entities, n_relations, in_dim, hidden_dim) for n in range(num_heads)])
-        self.att2 = KGAtt(n_entities, n_relations, num_heads * hidden_dim, out_dim, concat=False)
+        self.att1 = nn.ModuleList([KGAtt(n_entities, n_relations, in_dim, hidden_dim, device=device).to(device) for n in range(num_heads)])
+        self.att2 = KGAtt(n_entities, n_relations, num_heads * hidden_dim, out_dim, concat=False, device=device).to(device)
 
-        self.fc1 = nn.Linear(in_dim, num_heads * hidden_dim)
-        self.fc2 = nn.Linear(num_heads * hidden_dim, out_dim)
+        self.fc1 = nn.Linear(in_dim, num_heads * hidden_dim).to(device)
+        self.fc2 = nn.Linear(num_heads * hidden_dim, out_dim).to(device)
 
     def forward(self, triplets, ent_embed, rel_embed):
         att1_out = torch.cat([a(triplets, ent_embed, rel_embed) for a in self.att1], dim=1)
         rel_embed = self.fc1(rel_embed)
         out, rel_embed = self.att2(triplets, att1_out, rel_embed)
         rel_embed = self.fc2(rel_embed)
-        # print(out.shape)
+
         return out, rel_embed
