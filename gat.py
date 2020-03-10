@@ -11,8 +11,10 @@ from utils import create_mappings, get_batch_neighbors
 
 
 class GATLayer(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, num_nodes, num_rels, dropout=0.5):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_nodes, num_rels, dropout=0.5, first=True):
         super().__init__()
+
+        self.first =first
 
         self.ent_embed = nn.Parameter(torch.randn(num_nodes, input_dim))
         self.rel_embed = nn.Parameter(torch.randn((num_rels, input_dim)))
@@ -34,7 +36,7 @@ class GATLayer(nn.Module):
     def save_weights(self):
         pass
 
-    def forward(self, triplets: torch.Tensor):
+    def forward(self, triplets: torch.Tensor, ent_emb=None, rel_emb=None):
         """
         triplets: shape[batch_size, 3]
         """
@@ -45,8 +47,12 @@ class GATLayer(nn.Module):
 
         neighbors = {mapping[key]: [mapping[val] for val in neighbors[key]] for key, val in zip(neighbors.keys(), neighbors.values())}
 
-
-        src, dst, rel = self.ent_embed[src_], self.ent_embed[dst_], self.rel_embed[rel_]
+        if self.first:
+            src, dst, rel = self.ent_embed[src_], self.ent_embed[dst_], self.rel_embed[rel_]
+        else:
+            assert ent_emb != None
+            assert rel_emb != None
+            src, dst, rel = ent_emb[src_], ent_emb[dst], rel_emb[rel]
 
         src = self.fc_ent(src)
         dst = self.fc_ent(dst)
@@ -61,4 +67,4 @@ class GATLayer(nn.Module):
         alpha = b / b_sum
 
         h = torch.stack([sum([alpha[n_] * c[n_] for n_ in neighbors[n]]) for n in [mapping[s.item()] for s in src_]])
-        return h
+        return h, rel_emb
