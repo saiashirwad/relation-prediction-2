@@ -31,15 +31,12 @@ class KGAtt(nn.Module):
         ent_embed = ent_embed.to(self.device)
         rel_embed = rel_embed.to(self.device)
 
-        # N = triplets.shape[0]
         N = self.n_entities
-        # print(triplets.shape)
 
         h = torch.cat((ent_embed[triplets[:, 0]], rel_embed[triplets[:, 2]], ent_embed[triplets[:, 1]]), dim=1).to(self.device)
         c = self.a(h)
         b = F.leaky_relu(self.a_2(c))
         e_b = torch.exp(b)
-        # e_b = e_b.squeeze()
 
         temp = triplets.t()
         edges = torch.stack([temp[0], temp[2]])
@@ -47,8 +44,6 @@ class KGAtt(nn.Module):
         e_b_sum_ = torch.sparse_coo_tensor(edges, e_b, torch.Size((N, N, 1)))
         e_b_sum_ = e_b_sum_.detach()
         e_b_sum = torch.sparse.sum(e_b_sum_)
-        # print(type(e_b_sum))
-        # print(e_b_sum.__dict__)
 
         temp1 = e_b * c  # ??
 
@@ -66,8 +61,7 @@ class KGAtt(nn.Module):
 
 class MultiHeadKGAtt(nn.Module):
     def __init__(self, n_entities, n_relations, in_dim, hidden_dim, out_dim, num_heads, device='cpu'):
-        # super(MultiHeadKGAtt, self).__init__()
-        super().__init__()
+        super(MultiHeadKGAtt, self).__init__()
 
         self.n_entities = n_entities
         self.n_relations = n_relations

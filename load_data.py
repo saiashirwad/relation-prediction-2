@@ -1,6 +1,11 @@
 # from torchkge.data.DataLoader import *
 import numpy as np
 import torch
+from torchkge.data.DataLoader import load_fb15k237
+from torchkge.data.KnowledgeGraph import KnowledgeGraph
+
+from typing import Dict, List
+
 def text2vec(file):
     with open(file, 'r') as f:
         lines = f.readlines()
@@ -62,3 +67,36 @@ def get_init_embed(datafolder='data/FB15k-237/'):
     rel_embed = np.loadtxt(f'{datafolder}relation2vec.txt')
 
     return torch.from_numpy(ent_embed).to(torch.float32), torch.from_numpy(rel_embed).to(torch.float32)
+
+def generate_graph(src, dst):
+    if type(src) == torch.Tensor:
+        src = [s.item() for s in src]
+        dst = [d.item() for d in dst]
+
+    g = {}
+    for head, tail in zip(src, dst):
+        if head not in g.keys():
+            g[head] = []
+        g[head].append(tail)
+
+    return g
+
+def get_batch_neighbors(src: torch.Tensor, dst: torch.Tensor) -> Dict[int, List[int]]:
+    return generate_graph(src, dst)
+
+def add_inverted_triplets(kg: KnowledgeGraph) -> KnowledgeGraph:
+    src, dst, rel = kg.head_idx, kg.tail_idx, kg.relations
+    kg.head_idx = torch.cat((src, dst))
+    kg.tail_idx = torch.cat((dst, src))
+    kg.relations = torch.cat((rel, rel))
+    kg.n_facts *= 2
+
+    return kg
+
+def create_mappings(src, dst):
+    src = [s.item() for s in src]
+    dst = [d.item() for d in dst]
+
+    nodes = sorted(list(set(src + dst)))
+
+    return nodes
