@@ -37,14 +37,12 @@ class GATLayer(nn.Module):
     def forward(self, triplets: torch.Tensor):
         """
         triplets: shape[batch_size, 3]
-        neighbors: neighbors for nodes (within a given batch)
         """
         src_, dst_, rel_ = triplets[:, 0], triplets[:, 1], triplets[:, 2]
 
         mapping = create_mappings(src_, dst_)
         neighbors = get_batch_neighbors(src_, dst_)
 
-        # rev_mapping = {mapping[s]: s for s in [i.item() for i in torch.cat((src_, dst_))]}
         neighbors = {mapping[key]: [mapping[val] for val in neighbors[key]] for key, val in zip(neighbors.keys(), neighbors.values())}
 
 
@@ -62,7 +60,5 @@ class GATLayer(nn.Module):
 
         alpha = b / b_sum
 
-        print()
-
-        out = torch.randn(5)
-        return out
+        h = torch.stack([sum([alpha[n_] * c[n_] for n_ in neighbors[n]]) for n in [mapping[s.item()] for s in src_]])
+        return h

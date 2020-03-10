@@ -67,7 +67,7 @@ def train_GAT(args: Args, kg_train: KnowledgeGraph, kg_val: KnowledgeGraph):
     kg_train = add_inverted_triplets(kg_train)
     dataloader = DataLoader(kg_train, batch_size=args.batch_size, shuffle=False)
 
-    model = GATLayer(args.in_dim, args.out_dim, kg_train.n_ent, kg_train.n_rel).to(args.device)
+    model = GATLayer(args.in_dim, 50, args.out_dim, kg_train.n_ent, kg_train.n_rel).to(args.device)
     model.init_weights(*get_init_embed())
 
     model.train()
