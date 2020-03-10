@@ -7,7 +7,7 @@ import pickle
 
 from typing import Dict, List
 
-from utils import create_mappings, get_batch_neighbors
+from utils import create_mappings, get_batch_neighbors, rel2edge
 
 
 class KGATLayer(nn.Module):
@@ -21,6 +21,9 @@ class KGATLayer(nn.Module):
 
         self.fc_ent = nn.Linear(input_dim, hidden_dim)
         self.fc_rel = nn.Linear(input_dim, hidden_dim)
+
+        self.fc_rel2 = nn.Linear(hidden_dim, output_dim)
+        self.fc_rel3 = nn.Linear(3 * output_dim, output_dim)
 
         self.a = nn.Linear(output_dim, 1)
         self.fc = nn.Linear(3 * hidden_dim, output_dim)
@@ -70,8 +73,17 @@ class KGATLayer(nn.Module):
 
         nodes = list(set([s.item() for s in src_] + [d.item() for d in dst_]))
         nodes = [mapping[node] for node in nodes]
-        h = torch.stack([sum([alpha[n_] * c[n_] for n_ in neighbors[n]]) for n in nodes])
-        return h, rel_emb
+        h_ent = torch.stack([sum([alpha[n_] * c[n_] for n_ in neighbors[n]]) for n in nodes])
+
+
+        # Relations embeddings updated from new node embeddings
+        rel = self.fc_rel2(rel)
+        r2e = rel2edge(src_, dst_, rel_)
+
+        rel = torch.stack ( [  torch.mean( torch.stack([ torch.cat([  h_ent[mapping[n[0]]], h_ent[mapping[n[1]]], rel[r] ])  for n in r2e[r]]  ), dim=0 ) for r in r2e.keys()] )
+
+        h_rel = self.fc_rel3(rel)
+        return h_ent, h_rel
 
 
 

@@ -29,3 +29,18 @@ def generate_graph(src, dst):
 
 def get_batch_neighbors(src: torch.Tensor, dst: torch.Tensor) -> Dict[int, List[int]]:
     return generate_graph(src, dst)
+
+def rel2edge(src, dst, rel):
+    src = [s.item() for s in src]
+    dst = [d.item() for d in dst]
+    rel = [r.item() for r in rel]
+
+    r2e = {}
+    for i, r in enumerate(rel):
+        if r not in r2e.keys():
+            r2e[r] = []
+
+        r2e[r].append((src[i], dst[i]))
+        r2e[r].append((dst[i], src[i]))
+
+    return {i: list(set(r2e[i])) for i in r2e.keys()}
