@@ -11,22 +11,23 @@ from utils import create_mappings, get_batch_neighbors, rel2edge
 
 
 class KGATLayer(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, num_nodes, num_rels, dropout=0.5, first=True):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_nodes, num_rels, dropout=0.5, first=False, device='cpu'):
         super().__init__()
 
-        self.first =first
+        self.first = first
+        self.dropout = dropout
 
-        self.ent_embed = nn.Parameter(torch.randn(num_nodes, input_dim))
-        self.rel_embed = nn.Parameter(torch.randn((num_rels, input_dim)))
+        self.ent_embed = nn.Parameter(torch.randn(num_nodes, input_dim)).to(device)
+        self.rel_embed = nn.Parameter(torch.randn((num_rels, input_dim))).to(device)
 
-        self.fc_ent = nn.Linear(input_dim, hidden_dim)
-        self.fc_rel = nn.Linear(input_dim, hidden_dim)
+        self.fc_ent = nn.Linear(input_dim, hidden_dim).to(device)
+        self.fc_rel = nn.Linear(input_dim, hidden_dim).to(device)
 
-        self.fc_rel2 = nn.Linear(hidden_dim, output_dim)
-        self.fc_rel3 = nn.Linear(3 * output_dim, output_dim)
+        self.fc_rel2 = nn.Linear(hidden_dim, output_dim).to(device)
+        self.fc_rel3 = nn.Linear(3 * output_dim, output_dim).to(device)
 
-        self.a = nn.Linear(output_dim, 1)
-        self.fc = nn.Linear(3 * hidden_dim, output_dim)
+        self.a = nn.Linear(output_dim, 1).to(device)
+        self.fc = nn.Linear(3 * hidden_dim, output_dim).to(device)
 
     def init_weights(self, ent_embed, rel_embed):
         if type(ent_embed) != torch.Tensor or type(rel_embed) != torch.Tensor:
@@ -57,11 +58,17 @@ class KGATLayer(nn.Module):
         else:
             assert ent_emb != None
             assert rel_emb != None
-            src, dst, rel = ent_emb[src_], ent_emb[dst], rel_emb[rel]
+            # src, dst, rel = ent_emb[src_], ent_emb[dst_], rel_emb[rel_]
+            src = ent_emb[[mapping[s.item()] for s in src_]]
+            dst = ent_emb[[mapping[d.item()] for d in dst_]]
 
-        src = self.fc_ent(src)
-        dst = self.fc_ent(dst)
-        rel = self.fc_rel(rel)
+            rels = {j: i for i, j in enumerate(set([r.item() for r in rel_]))}
+            rel = rel_emb[[rels[r.item()] for r in rel_]]
+
+        src = F.dropout( self.fc_ent(src), self.dropout )
+        dst = F.dropout( self.fc_ent(dst), self.dropout )
+        rel = F.dropout( self.fc_rel(rel), self.dropout )
+
 
         c = self.fc(torch.cat([src, dst, rel], dim=1))
 
@@ -80,10 +87,37 @@ class KGATLayer(nn.Module):
         rel = self.fc_rel2(rel)
         r2e = rel2edge(src_, dst_, rel_)
 
-        rel = torch.stack ( [  torch.mean( torch.stack([ torch.cat([  h_ent[mapping[n[0]]], h_ent[mapping[n[1]]], rel[r] ])  for n in r2e[r]]  ), dim=0 ) for r in r2e.keys()] )
+        rel = torch.stack ( [
+            torch.mean( torch.stack([ torch.cat([
+                h_ent[mapping[n[0]]], h_ent[mapping[n[1]]], rel[r] ])  for n in r2e[r]]  ), dim=0 ) for r in r2e.keys()] )
 
         h_rel = self.fc_rel3(rel)
         return h_ent, h_rel
 
 
+class KGAT(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_heads, num_nodes, num_rels, device='cpu'):
+        super(KGAT, self).__init__()
+
+        self.a = nn.ModuleList([
+            KGATLayer(input_dim, hidden_dim, output_dim, num_nodes, num_rels, first=True, device=device).to(device)
+            for _ in range(num_heads)
+        ])
+
+        self.a2 = KGATLayer(num_heads * output_dim, output_dim, output_dim, num_nodes, num_rels, device=device).to(device)
+
+    def forward(self, triplets: torch.Tensor, ent_embed: torch.Tensor, rel_embed: torch.Tensor):
+        h_ents, h_rels = [], []
+        for layer in self.a:
+            layer.init_weights(ent_embed, rel_embed)
+            h_ent, h_rel = layer(triplets)
+            h_ents.append(h_ent)
+            h_rels.append(h_rel)
+
+        h_ents = torch.cat(h_ents, dim=1)
+        h_rels = torch.cat(h_rels, dim=1)
+
+        h_ent, h_rel = self.a2(triplets, h_ents, h_rels)
+
+        return h_ent, h_rel
 
