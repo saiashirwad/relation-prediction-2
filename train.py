@@ -13,7 +13,7 @@ from torchkge.data.DataLoader import load_fb15k237
 from torchkge.data.KnowledgeGraph import KnowledgeGraph
 
 from layers import MultiHeadKGAtt
-from gat import GATLayer
+from gat import KGATLayer
 from load_data import negative_sampling, get_init_embed, get_batch_neighbors, add_inverted_triplets
 from loss import loss_func
 
@@ -67,7 +67,7 @@ def train_GAT(args: Args, kg_train: KnowledgeGraph, kg_val: KnowledgeGraph):
     kg_train = add_inverted_triplets(kg_train)
     dataloader = DataLoader(kg_train, batch_size=args.batch_size, shuffle=False)
 
-    model = GATLayer(args.in_dim, 50, args.out_dim, kg_train.n_ent, kg_train.n_rel).to(args.device)
+    model = KGATLayer(args.in_dim, 50, args.out_dim, kg_train.n_ent, kg_train.n_rel).to(args.device)
     model.init_weights(*get_init_embed())
 
     model.train()

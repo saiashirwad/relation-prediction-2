@@ -22,8 +22,11 @@ class KGATLayer(nn.Module):
         self.fc_ent = nn.Linear(input_dim, hidden_dim)
         self.fc_rel = nn.Linear(input_dim, hidden_dim)
 
-        self.a = nn.Linear(output_dim, 1)
-        self.fc = nn.Linear(3 * hidden_dim, output_dim)
+        self.a_ent = nn.Linear(output_dim, 1)
+        self.fc_ent2 = nn.Linear(3 * hidden_dim, output_dim)
+
+        self.a_rel = nn.Linear(output_dim, 1)
+        self.fc_rel2 = nn.Linear(3 * hidden_dim, output_dim)
 
     def init_weights(self, ent_embed, rel_embed):
         if type(ent_embed) != torch.Tensor or type(rel_embed) != torch.Tensor:
@@ -60,18 +63,13 @@ class KGATLayer(nn.Module):
         dst = self.fc_ent(dst)
         rel = self.fc_rel(rel)
 
-        c = self.fc(torch.cat([src, dst, rel], dim=1))
+        c = self.fc_ent2(torch.cat([src, dst, rel], dim=1))
 
-        b = F.leaky_relu(self.a(c)).squeeze()
+        b = F.leaky_relu(self.a_ent(c)).squeeze()
         b = torch.exp(b)
         b_sum = torch.stack([sum([b[n_] for n_ in neighbors[n]]) for n in [mapping[s.item()] for s in src_]]) # phew
 
         alpha = b / b_sum
 
-        nodes = list(set([s.item() for s in src_] + [d.item() for d in dst_]))
-        nodes = [mapping[node] for node in nodes]
-        h = torch.stack([sum([alpha[n_] * c[n_] for n_ in neighbors[n]]) for n in nodes])
+        h = torch.stack([sum([alpha[n_] * c[n_] for n_ in neighbors[n]]) for n in [mapping[s.item()] for s in list(set(src_ + dst_))]])
         return h, rel_emb
-
-
-

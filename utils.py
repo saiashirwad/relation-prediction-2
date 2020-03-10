@@ -20,9 +20,12 @@ def generate_graph(src, dst):
     for head, tail in zip(src, dst):
         if head not in g.keys():
             g[head] = []
+        if tail not in g.keys():
+            g[tail] = []
         g[head].append(tail)
+        g[tail].append(head)
 
-    return g
+    return {i: list(set(g[i])) for i in g.keys()}
 
 def get_batch_neighbors(src: torch.Tensor, dst: torch.Tensor) -> Dict[int, List[int]]:
     return generate_graph(src, dst)
