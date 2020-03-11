@@ -45,16 +45,24 @@ class KGATLayer(nn.Module):
         triplets: shape[batch_size, 3]
         """
         src_, dst_, rel_ = triplets[:, 0], triplets[:, 1], triplets[:, 2]
+        src_ = [s.item() for s in src_]
+        dst_ = [d.item() for d in dst_]
+        rel_ = [r.item() for r in rel_]
 
+        nodes = list(set(src_ + dst_))
+
+        #precompute
         mapping = create_mappings(src_, dst_)
         neighbors = get_batch_neighbors(src_, dst_)
 
+        #precompute
         neighbors = {mapping[key]: [mapping[val] for val in neighbors[key]] for key, val in zip(neighbors.keys(), neighbors.values())}
         # Add multi-hop neighbors
         # Add neighbor sampling
 
         if self.first:
             src, dst, rel = self.ent_embed[src_], self.ent_embed[dst_], self.rel_embed[rel_]
+            # print(src)
         else:
             assert ent_emb != None
             assert rel_emb != None
@@ -74,25 +82,32 @@ class KGATLayer(nn.Module):
 
         b = F.leaky_relu(self.a(c)).squeeze()
         b = torch.exp(b)
-        b_sum = torch.stack([sum([b[n_] for n_ in neighbors[n]]) for n in [mapping[s.item()] for s in src_]]) # phew
+        # b_sum = torch.stack([sum([b[n_] for n_ in neighbors[n]]) for n in [mapping[s.item()] for s in src_]]) # phew
+        b_sum = torch.stack([ torch.sum( b[ [n for n in neighbors[mapping[s]]] ] )  for s in src_])
 
         alpha = b / b_sum
 
-        nodes = list(set([s.item() for s in src_] + [d.item() for d in dst_]))
+        # nodes = list(set([s.item() for s in src_] + [d.item() for d in dst_]))
         nodes = [mapping[node] for node in nodes]
-        h_ent = torch.stack([sum([alpha[n_] * c[n_] for n_ in neighbors[n]]) for n in nodes])
+        ac = alpha.unsqueeze(1) * c
+        # h_ent = torch.stack([sum([alpha[n_] * c[n_] for n_ in neighbors[n]]) for n in nodes])
+        # h_ent = [ [ac [n_ for n_ in neighbors[n]]] for n in nodes]
+        h_ent = torch.stack( [   torch.sum (ac[ [n_ for n_ in neighbors[n]] ], dim=0 ) for n in nodes] )
 
 
         # Relations embeddings updated from new node embeddings
         rel = self.fc_rel2(rel)
-        r2e = rel2edge(src_, dst_, rel_)
+        # r2e = rel2edge(src_, dst_, rel_)
 
-        rel = torch.stack ( [
-            torch.mean( torch.stack([ torch.cat([
-                h_ent[mapping[n[0]]], h_ent[mapping[n[1]]], rel[r] ])  for n in r2e[r]]  ), dim=0 ) for r in r2e.keys()] )
+        # rel = torch.stack ( [
+        #     torch.mean( torch.stack([ torch.cat([
+        #         h_ent[mapping[n[0]]], h_ent[mapping[n[1]]], rel[r] ])  for n in r2e[r]]  ), dim=0 ) for r in r2e.keys()] )
 
-        h_rel = self.fc_rel3(rel)
-        return h_ent, h_rel
+        # h_rel = self.fc_rel3(rel)
+        # return h_ent, h_rel
+        # print("done")
+
+        return h_ent, rel
 
 
 class KGAT(nn.Module):
@@ -113,11 +128,13 @@ class KGAT(nn.Module):
             h_ent, h_rel = layer(triplets)
             h_ents.append(h_ent)
             h_rels.append(h_rel)
+            # print(h_ent.shape)
+            # print(h_rel.shape)
 
-        h_ents = torch.cat(h_ents, dim=1)
-        h_rels = torch.cat(h_rels, dim=1)
+        h_ents = torch.mean(h_ents, dim=1)
+        h_rels = torch.mean(h_rels, dim=1)
 
-        h_ent, h_rel = self.a2(triplets, h_ents, h_rels)
+        # h_ent, h_rel = self.a2(triplets, h_ents, h_rels)
 
-        return h_ent, h_rel
+        return h_ents, h_rels
 

@@ -4,6 +4,40 @@ import torch.nn.functional as F
 
 import numpy as np
 
+class SpecialSpmmFunctionFinal(torch.autograd.Function):
+    """Special function for only sparse region backpropataion layer."""
+    @staticmethod
+    def forward(ctx, edge, edge_w, N, E, out_features):
+        # assert indices.requires_grad == False
+        a = torch.sparse_coo_tensor(
+            edge, edge_w, torch.Size([N, N, out_features]))
+        b = torch.sparse.sum(a, dim=1)
+        ctx.N = b.shape[0]
+        ctx.outfeat = b.shape[1]
+        ctx.E = E
+        ctx.indices = a._indices()[0, :]
+
+        return b.to_dense()
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_values = None
+        if ctx.needs_input_grad[1]:
+            edge_sources = ctx.indices
+
+            if(CUDA):
+                edge_sources = edge_sources.cuda()
+
+            grad_values = grad_output[edge_sources]
+            # grad_values = grad_values.view(ctx.E, ctx.outfeat)
+            # print("Grad Outputs-> ", grad_output)
+            # print("Grad values-> ", grad_values)
+        return None, grad_values, None, None, None
+
+class SpecialSpmmFinal(nn.Module):
+    def forward(self, edge, edge_w, N, E, out_features):
+        return SpecialSpmmFunctionFinal.apply(edge, edge_w, N, E, out_features)
+
 
 class KGAtt(nn.Module):
     """
@@ -26,6 +60,8 @@ class KGAtt(nn.Module):
         self.a_2 = nn.Linear(out_dim, 1).to(device)
         nn.init.xavier_normal_(self.a_2.weight.data, gain=1.414)
 
+        self.special_spmm_final = SpecialSpmmFinal()
+
     def forward(self, triplets, ent_embed, rel_embed):
         triplets = triplets.to(self.device)
         ent_embed = ent_embed.to(self.device)
@@ -43,20 +79,27 @@ class KGAtt(nn.Module):
 
         e_b_sum_ = torch.sparse_coo_tensor(edges, e_b, torch.Size((N, N, 1)))
         e_b_sum_ = e_b_sum_.detach()
-        e_b_sum = torch.sparse.sum(e_b_sum_)
+        e_b_sum = torch.sparse.sum(e_b_sum_, dim=1)
 
-        temp1 = e_b * c  # ??
+        # e_b_sum = self.special_spmm_final(edges, e_b, N, e_b.shape[0], 1)
+
+        temp1 = e_b * c
 
         h_ = torch.sparse_coo_tensor(edges, temp1, torch.Size((N, N, self.out_dim)))
         h_ = h_.detach()
         h_sum = torch.sparse.sum(h_, dim=1)
 
-        out = h_sum.div(e_b_sum)
+        hs = h_sum.to_dense()
+        ebs = e_b_sum.to_dense()
+        ebs[ebs == 0] = 1e-12
+
+        # out = h_sum.div(e_b_sum)
+        out = hs / ebs
 
         if self.concat:
-            return F.elu(out.to_dense())
+            return F.elu(out)
         else:
-            return out.to_dense(), rel_embed
+            return out, rel_embed
 
 
 class MultiHeadKGAtt(nn.Module):

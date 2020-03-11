@@ -12,10 +12,12 @@ from torch.utils.data import DataLoader
 from torchkge.data.DataLoader import load_fb15k237
 from torchkge.data.KnowledgeGraph import KnowledgeGraph
 
+import time
+
 from layers import MultiHeadKGAtt
 from gat import KGAT
 from load_data import negative_sampling, get_init_embed, get_batch_neighbors, add_inverted_triplets
-from loss import loss_func
+from loss import loss_func, loss_func2
 
 Args = namedtuple('args', ['in_dim', 'hidden_dim', 'out_dim', 'num_heads', 'n_epochs', 'batch_size', 'lr', 'negative_rate', 'device', 'optimizer'])
 
@@ -49,11 +51,13 @@ def train(args: Args, kg_train, kg_val):
 
             model.zero_grad()
 
+            # start = time.time()
             ent_embed_, rel_embed_ = model(triplets, ent_embed, rel_embed)
-            loss = loss_func(triplets, args.negative_rate, ent_embed_, rel_embed_, device=args.device)
+            loss = loss_func2(triplets, args.negative_rate, ent_embed_, rel_embed_, device=args.device)
 
             loss.backward()
             optimizer.step()
+            # print(f"Finished {time.time() - start}")
 
             losses.append(loss.item())
             # print(loss.item())
@@ -74,6 +78,9 @@ def train_GAT(args: Args, kg_train: KnowledgeGraph, kg_val: KnowledgeGraph):
     model = KGAT(args.in_dim, 50, args.out_dim, args.num_heads, kg_train.n_ent, kg_train.n_rel, args.device).to(args.device)
     # model.init_weights(*get_init_embed())
 
+    optimizer = AdamW(model.parameters(), lr=args.lr)
+
+    loss = 0
     model.train()
     for epoch in range(args.n_epochs):
         losses = []
@@ -86,15 +93,27 @@ def train_GAT(args: Args, kg_train: KnowledgeGraph, kg_val: KnowledgeGraph):
             # neighbors = get_batch_neighbors(src, dst)
 
             model.zero_grad()
+            print(f"Start: ")
+            start = time.time()
             h_ent, h_rel = model(triplets, ent_embed, rel_embed)
             loss = loss_func(triplets, args.negative_rate, h_ent, h_rel, args.device)
 
+            loss.backward()
+            optimizer.step()
+            print(f"Finish: {time.time() - start}")
 
+            losses.append(loss.item())
+            print(loss.item())
+
+        loss = sum(losses) / (len(losses))
+        print(f'Epoch {epoch} Loss: {loss}')
+
+    return loss
 
 
 if __name__ == '__main__':
 
     kg_train, kg_test, kg_val = load_fb15k237()
 
-    args = Args(100, 200, 100, 1, 10, 1024, 0.01, 10, 'cpu', 'sgd')
-    train_GAT(args, kg_train, kg_val)
+    args = Args(100, 200, 100, 4, 10, 1024, 0.01, 10, 'cpu', 'sgd')
+    train(args, kg_train, kg_val)

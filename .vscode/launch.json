@@ -8,7 +8,7 @@
             "name": "Train",
             "type": "python",
             "request": "launch",
-            "program": "$train.py",
+            "program": "G:/My Drive/Code/relpred/train.py",
             "console": "integratedTerminal"
         },
         {

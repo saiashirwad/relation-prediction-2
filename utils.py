@@ -3,8 +3,9 @@ import torch
 from typing import List, Dict
 
 def create_mappings(src: torch.Tensor, dst:torch.Tensor) -> Dict[int, List[int]]:
-    src = [s.item() for s in src]
-    dst = [d.item() for d in dst]
+    if type(src) == torch.Tensor:
+        src = [s.item() for s in src]
+        dst = [d.item() for d in dst]
 
     nodes = {j : i for i, j in enumerate(sorted(list(set(src + dst))))}
 
