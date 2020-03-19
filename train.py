@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 
 from torchkge.data.DataLoader import load_fb15k237
 from torchkge.data.KnowledgeGraph import KnowledgeGraph
+from torchkge.models import TransEModel
 
 import time
 
@@ -60,6 +61,9 @@ def train(args: Args, kg_train, kg_val):
             # print(f"Finished {time.time() - start}")
 
             losses.append(loss.item())
+
+            # if i % 100 == 0:
+            #     print(loss.item())
             # print(loss.item())
 
         loss = sum(losses) / (len(losses))
@@ -115,5 +119,5 @@ if __name__ == '__main__':
 
     kg_train, kg_test, kg_val = load_fb15k237()
 
-    args = Args(100, 200, 100, 4, 10, 1024, 0.01, 10, 'cpu', 'sgd')
+    args = Args(100, 200, 100, 4, 10, 2000, 0.01, 10, 'cuda', 'sgd')
     train(args, kg_train, kg_val)
