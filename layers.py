@@ -102,7 +102,7 @@ class KGAtt(nn.Module):
         h_rel = scatter(temp1, index=index, dim=0, reduce="mean")
 
         if self.concat:
-            return F.elu(h_ent)
+            return F.elu(h_ent), F.elu(h_rel)
         else:
             return h_ent, h_rel
 
@@ -126,9 +126,13 @@ class MultiHeadKGAtt(nn.Module):
         self.fc2 = nn.Linear(num_heads * hidden_dim, out_dim).to(device)
 
     def forward(self, triplets, ent_embed, rel_embed):
-        att1_out = torch.cat([a(triplets, ent_embed, rel_embed) for a in self.att1], dim=1)
-        rel_embed = self.fc1(rel_embed)
-        out, rel_embed = self.att2(triplets, att1_out, rel_embed)
-        rel_embed = self.fc2(rel_embed)
+        att1_out = [a(triplets, ent_embed, rel_embed) for a in self.att1]
+        h_ent = torch.cat([a[0] for a in att1_out], dim=1)
+        h_rel = torch.cat([a[1] for a in att1_out], dim=1)
+        # rel_embed = self.fc1(rel_embed)
+        # out, rel_embed = self.att2(triplets, att1_out, rel_embed)
+        # rel_embed = self.fc2(rel_embed)
 
-        return out, rel_embed
+        h_ent, h_rel = self.att2(triplets, h_ent, h_rel)
+
+        return h_ent, h_rel

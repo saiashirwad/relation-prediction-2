@@ -99,9 +99,9 @@ class KGATLayer(nn.Module):
         rel = self.fc_rel2(rel)
         # r2e = rel2edge(src_, dst_, rel_)
 
-        # rel = torch.stack ( [
-        #     torch.mean( torch.stack([ torch.cat([
-        #         h_ent[mapping[n[0]]], h_ent[mapping[n[1]]], rel[r] ])  for n in r2e[r]]  ), dim=0 ) for r in r2e.keys()] )
+        rel = torch.stack ( [
+            torch.mean( torch.stack([ torch.cat([
+                h_ent[mapping[n[0]]], h_ent[mapping[n[1]]], rel[r] ])  for n in r2e[r]]  ), dim=0 ) for r in r2e.keys()] )
 
         # h_rel = self.fc_rel3(rel)
         # return h_ent, h_rel
