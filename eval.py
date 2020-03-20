@@ -20,6 +20,15 @@ def validate(model: nn.Module, ent_embed, rel_embed, kg: KnowledgeGraph, batch_s
     for i, batch in enumerate(dataloader):
         if i > 200:
             break
+
+        h = batch[0]
+        t = batch[1]
+        r = batch[2]
+        batch[0] = torch.cat([h, t])
+        batch[1] = torch.cat([t, h])
+        batch[2] = torch.cat([r, r])
+
+        
         src, dst, rel = batch
 
         triplets = torch.stack(batch).t().to(device)
@@ -35,13 +44,14 @@ def validate(model: nn.Module, ent_embed, rel_embed, kg: KnowledgeGraph, batch_s
         dst = ent_embed_[dst]
         rel = rel_embed_[rel]
 
-        loss = torch.norm(src + rel - dst, 2, 1).repeat(kg.n_ent)
+        loss = torch.norm(src + rel - dst, 2, 1)
+        loss = loss.repeat(kg.n_ent)
 
         src_ = src.repeat(kg.n_ent, 1)
         dst_ = dst.repeat(kg.n_ent, 1)
         rel_ = rel.repeat(kg.n_ent, 1)
 
-        ent_embed_ = ent_embed_.repeat(batch_size, 1)
+        ent_embed_ = ent_embed_.repeat(2 * batch_size, 1)
 
         loss_h = torch.norm(ent_embed_ + rel_ - dst_, 2, 1)
         loss_t = torch.norm(src_ + rel_ - ent_embed_, 2, 1)
@@ -52,8 +62,8 @@ def validate(model: nn.Module, ent_embed, rel_embed, kg: KnowledgeGraph, batch_s
         rankHs.append(rankH)
         rankTs.append(rankT)
     
-    # print(sum(rankHs) / len(rankHs))
-    # print(sum(rankTs) / len(rankTs))
+    print(sum(rankHs) / len(rankHs))
+    print(sum(rankTs) / len(rankTs))
     v = (sum(rankHs)/len(rankHs)) + (sum(rankTs)/len(rankTs))
     print(v/2)
 

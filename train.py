@@ -26,9 +26,18 @@ from eval import validate
 Args = namedtuple('args', ['in_dim', 'hidden_dim', 'out_dim', 'num_heads', 'n_epochs', 'batch_size', 'lr', 'negative_rate', 'device', 'optimizer'])
 
 
-def train(args: Args, kg_train, kg_val):
+def train(args: Args, kg_train: KnowledgeGraph, kg_val):
 
     n_ent, n_rel = kg_train.n_ent, kg_train.n_rel
+
+    # h = kg_train.head_idx
+    # t = kg_train.tail_idx
+    # r = kg_train.relations
+
+    # kg_train.head_idx = h + t
+    # kg_train.tail_idx = t + h
+    # kg_train.relations = r + r
+    # kg_train.n_facts = 2 * kg_train.n_facts
 
     writer = SummaryWriter("runs/train1")
 
@@ -54,6 +63,13 @@ def train(args: Args, kg_train, kg_val):
         rel_embeds = [0]
 
         for i, batch in enumerate(dataloader):
+
+            h = batch[0]
+            t = batch[1]
+            r = batch[2]
+            batch[0] = torch.cat([h, t])
+            batch[1] = torch.cat([t, h])
+            batch[2] = torch.cat([r, r])
     
             triplets = torch.stack(batch)
             triplets, labels = negative_sampling(triplets, n_ent, args.negative_rate)
@@ -136,5 +152,5 @@ if __name__ == '__main__':
 
     kg_train, kg_test, kg_val = load_fb15k237()
 
-    args = Args(100, 200, 100, 5, 100, 2000, 0.01, 10, 'cuda', 'sgd')
+    args = Args(100, 200, 100, 5, 100, 1000, 0.01, 10, 'cuda', 'sgd')
     train(args, kg_train, kg_val)
