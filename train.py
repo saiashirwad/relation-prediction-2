@@ -26,9 +26,25 @@ from eval import validate
 Args = namedtuple('args', ['in_dim', 'hidden_dim', 'out_dim', 'num_heads', 'n_epochs', 'batch_size', 'lr', 'negative_rate', 'device', 'optimizer'])
 
 
-def train(args: Args, kg_train: KnowledgeGraph, kg_val):
+def get_valid_triplets(kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val: KnowledgeGraph, reverse=True):
+    triplets = set()
+    for kg in [kg_train, kg_test, kg_val]:
+        for i in range(kg.n_facts):
+            triplets.add((kg.head_idx[i], kg.tail_idx[i], kg.relations[i]))
+            if reverse:
+                triplets.add((kg.tail_idx[i], kg.head_idx[i], kg.relations[i]))
+    
+    print(f'Number of unique triplets: {len(triplets)}')
+    return triplets
+
+
+
+
+def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val: KnowledgeGraph):
 
     n_ent, n_rel = kg_train.n_ent, kg_train.n_rel
+
+    total_triplets = get_valid_triplets(kg_train, kg_test, kg_val)
 
     # h = kg_train.head_idx
     # t = kg_train.tail_idx
@@ -100,57 +116,13 @@ def train(args: Args, kg_train: KnowledgeGraph, kg_val):
         writer.add_scalar("Train Loss", loss, epoch)
 
         model.eval()
-        validate(model, ent_embed, rel_embed, kg_val, 100, 'cuda')
+        validate(model, ent_embed, rel_embed, kg_val, total_triplets, 100, 'cuda')
 
     return loss
-
-def train_GAT(args: Args, kg_train: KnowledgeGraph, kg_val: KnowledgeGraph):
-    kg_train = add_inverted_triplets(kg_train)
-    dataloader = DataLoader(kg_train, batch_size=args.batch_size, shuffle=False)
-
-
-    ent_embed, rel_embed = get_init_embed()
-    ent_embed, rel_embed = ent_embed.to(args.device), rel_embed.to(args.device)
-
-    model = KGAT(args.in_dim, 50, args.out_dim, args.num_heads, kg_train.n_ent, kg_train.n_rel, args.device).to(args.device)
-    # model.init_weights(*get_init_embed())
-
-    optimizer = AdamW(model.parameters(), lr=args.lr)
-
-    loss = 0
-    model.train()
-    for epoch in range(args.n_epochs):
-        losses = []
-        for i, batch in enumerate(dataloader):
-            triplets = torch.stack(batch)
-            triplets, labels = negative_sampling(triplets, kg_train.n_ent, args.negative_rate)
-            triplets, labels = triplets.to(args.device), labels.to(args.device)
-
-            src, dst = triplets[:, 0], triplets[:, 1]
-            # neighbors = get_batch_neighbors(src, dst)
-
-            model.zero_grad()
-            print(f"Start: ")
-            start = time.time()
-            h_ent, h_rel = model(triplets, ent_embed, rel_embed)
-            loss = loss_func(triplets, args.negative_rate, h_ent, h_rel, args.device)
-
-            loss.backward()
-            optimizer.step()
-            print(f"Finish: {time.time() - start}")
-
-            losses.append(loss.item())
-            print(loss.item())
-
-        loss = sum(losses) / (len(losses))
-        print(f'Epoch {epoch} Loss: {loss}')
-
-    return loss
-
 
 if __name__ == '__main__':
 
     kg_train, kg_test, kg_val = load_fb15k237()
 
     args = Args(100, 200, 100, 5, 100, 1000, 0.01, 10, 'cuda', 'sgd')
-    train(args, kg_train, kg_val)
+    train(args, kg_train, kg_test, kg_val)
