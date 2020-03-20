@@ -68,13 +68,13 @@ class KGAtt(nn.Module):
 
         N = self.n_entities
 
-        h = torch.cat((ent_embed[triplets[:, 0]], rel_embed[triplets[:, 2]], ent_embed[triplets[:, 1]]), dim=1).to(self.device)
+        h = torch.cat((ent_embed[triplets[:, 0]], rel_embed[triplets[:, 2]], ent_embed[triplets[:, 1]]), dim=1)
         c = self.a(h)
         b = F.leaky_relu(self.a_2(c))
         e_b = torch.exp(b)
 
         temp = triplets.t()
-        edges = torch.stack([temp[0], temp[2]])
+        edges = torch.stack([temp[0], temp[1]])
 
         # e_b_sum_ = torch.sparse_coo_tensor(edges, e_b, torch.Size((N, N, 1)))
         # e_b_sum_ = e_b_sum_.detach()
@@ -99,7 +99,7 @@ class KGAtt(nn.Module):
         h_ent = hs / ebs
 
         index = triplets[:, 2]
-        h_rel = scatter(temp1, index=index, dim=0, reduce="mean")
+        h_rel = scatter(temp1, index=index, dim=0, reduce="mean") # SUCH A LIFESAVER!
 
         if self.concat:
             return F.elu(h_ent), F.elu(h_rel)
@@ -135,4 +135,5 @@ class MultiHeadKGAtt(nn.Module):
 
         h_ent, h_rel = self.att2(triplets, h_ent, h_rel)
 
+        # return F.softmax(h_ent, dim=-1), F.softmax(h_rel, dim=-1)
         return h_ent, h_rel

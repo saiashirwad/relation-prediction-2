@@ -8,7 +8,7 @@
             "name": "Train",
             "type": "python",
             "request": "launch",
-            "program": "G:/My Drive/Code/relpred/train.py",
+            "program": "/home/sai/code/relation-prediction-2/train.py",
             "console": "integratedTerminal"
         },
         {
