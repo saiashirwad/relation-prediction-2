@@ -70,7 +70,7 @@ class KGAtt(nn.Module):
         ent_embed = ent_embed.to(self.device)
         rel_embed = rel_embed.to(self.device)
 
-        nodes = list(set([t.item() for t in torch.cat(( triplets[:, 0], triplets[:, 1] ))]))
+        # nodes = list(set([t.item() for t in torch.cat(( triplets[:, 0], triplets[:, 1] ))]))
         # edges = list(set([t.item() for t in triplets[:, 2]]))
 
         N = self.n_entities
@@ -102,12 +102,12 @@ class KGAtt(nn.Module):
         ebs[ebs == 0] = 1e-12
 
         # out = h_sum.div(e_b_sum)
-        h_ent_ = hs / ebs
+        h_ent = hs / ebs
 
         index = triplets[:, 2]
         h_rel = scatter(temp1, index=index, dim=0, reduce="mean") # SUCH A LIFESAVER!
 
-        h_ent = h_ent_
+        # h_ent = h_ent_
 
         # Hacky AF. Sigh
         # self.ent_embed[nodes] = h_ent_[nodes]
