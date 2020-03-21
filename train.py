@@ -125,5 +125,5 @@ if __name__ == '__main__':
 
     kg_train, kg_test, kg_val = load_fb15k237()
 
-    args = Args(100, 200, 100, 4, 100, 2000, 0.01, 10, 'cuda', 'sgd')
+    args = Args(100, 200, 100, 4, 100, 1000, 0.01, 10, 'cuda', 'sgd')
     train(args, kg_train, kg_test, kg_val)

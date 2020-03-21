@@ -46,7 +46,10 @@ def validate(model: nn.Module, ent_embed, rel_embed, kg: KnowledgeGraph, total_t
 
         triplets = torch.stack(batch).t().to(device)
 
-        ent_embed_, rel_embed_ = model(triplets, ent_embed, rel_embed)
+        # ent_embed_, rel_embed_ = model(triplets, ent_embed, rel_embed)
+        
+        #Eh
+        ent_embed_, rel_embed_ = ent_embed, rel_embed
 
         if device == 'cuda':
             src = src.to(device)
