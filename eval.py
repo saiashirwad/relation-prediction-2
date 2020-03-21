@@ -38,12 +38,12 @@ def validate(model: KGAtt, kg: KnowledgeGraph, total_triplets: Set[Tuple], batch
         if i > 200:
             break
 
-        h = batch[0]
-        t = batch[1]
-        r = batch[2]
-        batch[0] = torch.cat([h, t])
-        batch[1] = torch.cat([t, h])
-        batch[2] = torch.cat([r, r])
+        # h = batch[0]
+        # t = batch[1]
+        # r = batch[2]
+        # batch[0] = torch.cat([h, t])
+        # batch[1] = torch.cat([t, h])
+        # batch[2] = torch.cat([r, r])
 
         
         src, dst, rel = batch
@@ -71,7 +71,8 @@ def validate(model: KGAtt, kg: KnowledgeGraph, total_triplets: Set[Tuple], batch
         dst_ = dst.repeat(kg.n_ent, 1)
         rel_ = rel.repeat(kg.n_ent, 1)
 
-        ent_embed_ = ent_embed_.repeat(2 * batch_size, 1)
+        # ent_embed_ = ent_embed_.repeat(2 * batch_size, 1)
+        ent_embed_ = ent_embed_.repeat(batch_size, 1)
 
         dist_head_prediction = ent_embed_ + rel_ - dst_
         dist_tail_prediction = src_ + rel_ - ent_embed_
@@ -152,27 +153,3 @@ def validate(model: KGAtt, kg: KnowledgeGraph, total_triplets: Set[Tuple], batch
 
 
     print()
-
-        
-
-
-
-                
-
-
-def calc_rank(in_queue: mp.JoinableQueue, out_queue):
-    """
-    Adapted from https://github.com/ZichaoHuang/TransE/
-    in_queue: triplet, head_prediction, tail_prediction
-    """
-    while True:
-        predictions = in_queue.get()
-        if predictions is None:
-            in_queue.task_done()
-            return 
-        else:
-            triplet, head_prediction, tail_prediction = predictions
-            src, dst, rel = triplet
-
-            src_rank_raw, dst_rank_raw, src_rank_filter, dst_rank_filter = [0] * 4
-            pass 
