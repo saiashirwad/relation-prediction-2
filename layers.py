@@ -62,10 +62,13 @@ class KGAtt(nn.Module):
         self.special_spmm_final = SpecialSpmmFinal()
 
 
-        # self.ent_embed = torch.randn(n_entities, out_dim).to(device)
-        # self.rel_embed = torch.randn(n_relations, out_dim).to(device)
+        self.ent_embed = torch.randn(n_entities, out_dim).to(device).detach()
+        self.rel_embed = torch.randn(n_relations, out_dim).to(device).detach()
+    
+    def get_embeddings(self):
+        return self.ent_embed, self.rel_embed
 
-    def forward(self, triplets, ent_embed, rel_embed):
+    def forward(self, triplets, ent_embed, rel_embed, nodes_=None, edges_=None):
         triplets = triplets.to(self.device)
         ent_embed = ent_embed.to(self.device)
         rel_embed = rel_embed.to(self.device)
@@ -110,10 +113,10 @@ class KGAtt(nn.Module):
         # h_ent = h_ent_
 
         # Hacky AF. Sigh
-        # self.ent_embed[nodes] = h_ent_[nodes]
+        self.ent_embed[nodes_] = h_ent[nodes_]
         # h_ent = self.ent_embed
 
-        # self.rel_embed[edges] = h_rel[edges]
+        self.rel_embed[edges_] = h_rel[edges_]
         # h_rel = self.rel_embed
 
         if self.concat:
@@ -145,15 +148,15 @@ class MultiHeadKGAtt(nn.Module):
         self.fc1 = nn.Linear(in_dim, num_heads * hidden_dim).to(device)
         self.fc2 = nn.Linear(num_heads * hidden_dim, out_dim).to(device)
 
-    def forward(self, triplets, ent_embed, rel_embed):
-        att1_out = [a(triplets, ent_embed, rel_embed) for a in self.att1]
+    def forward(self, triplets, ent_embed, rel_embed, nodes=None, edges=None):
+        att1_out = [a(triplets, ent_embed, rel_embed, nodes, edges) for a in self.att1]
         h_ent = torch.cat([a[0] for a in att1_out], dim=1)
         h_rel = torch.cat([a[1] for a in att1_out], dim=1)
         # rel_embed = self.fc1(rel_embed)
         # out, rel_embed = self.att2(triplets, att1_out, rel_embed)
         # rel_embed = self.fc2(rel_embed)
 
-        h_ent, h_rel = self.att2(triplets, h_ent, h_rel)
+        h_ent, h_rel = self.att2(triplets, h_ent, h_rel, nodes, edges)
 
         # return F.softmax(h_ent, dim=-1), F.softmax(h_rel, dim=-1)
         return h_ent, h_rel

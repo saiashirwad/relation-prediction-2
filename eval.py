@@ -10,8 +10,10 @@ import multiprocessing as mp
 
 from typing import Set, Tuple
 
+from layers import KGAtt
 
-def validate(model: nn.Module, ent_embed, rel_embed, kg: KnowledgeGraph, total_triplets: Set[Tuple], batch_size=1000, device='cuda'):
+
+def validate(model: KGAtt, kg: KnowledgeGraph, total_triplets: Set[Tuple], batch_size=1000, device='cuda'):
     batch_size = 1
 
 
@@ -28,6 +30,8 @@ def validate(model: nn.Module, ent_embed, rel_embed, kg: KnowledgeGraph, total_t
     head_rank_mean, tail_rank_mean, filtered_head_rank_mean, filtered_tail_rank_mean = [0] * 4
 
     head_hits_10_raw, head_hits_10_filter, tail_hits_10_raw, tail_hits_10_filter = [0] * 4
+
+    ent_embed, rel_embed = model.get_embeddings()
 
     # model.eval()
     for i, batch in enumerate(dataloader):

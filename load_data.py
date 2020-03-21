@@ -60,7 +60,11 @@ def negative_sampling(pos_samples, num_entity, negative_rate):
     neg_samples[subj, 0] = values[subj]
     neg_samples[obj, 1] = values[obj]
 
-    return torch.from_numpy(np.concatenate((pos_samples, neg_samples))), torch.from_numpy(labels)
+    samples = np.concatenate((pos_samples, neg_samples))
+    nodes = list(set(np.concatenate([  samples[:, 0], samples[:, 1]  ] )))
+    edges = list(set(samples[:, 2]))
+
+    return torch.from_numpy(np.concatenate((pos_samples, neg_samples))), torch.from_numpy(labels), nodes, edges
 
 def get_init_embed(datafolder='data/FB15k-237/'):
     ent_embed = np.loadtxt(f'{datafolder}entity2vec.txt')

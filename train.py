@@ -9,9 +9,8 @@ from torch import cuda
 from torch.optim import Adam, SGD, AdamW
 from torch.utils.data import DataLoader
 
-from torchkge.data.DataLoader import load_fb15k237
-from torchkge.data.KnowledgeGraph import KnowledgeGraph
-from torchkge.models import TransEModel
+from dataloader import load_fb15k237
+from knowledgegraph import KnowledgeGraph
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -88,14 +87,14 @@ def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val:
             batch[2] = torch.cat([r, r])
     
             triplets = torch.stack(batch)
-            triplets, labels = negative_sampling(triplets, n_ent, args.negative_rate)
+            triplets, labels, nodes, edges = negative_sampling(triplets, n_ent, args.negative_rate)
             triplets, labels = triplets.to(args.device), labels.to(args.device)
 
             model.zero_grad()
 
             # start = time.time()
             model.train()
-            ent_embed_, rel_embed_ = model(triplets, ent_embed, rel_embed)
+            ent_embed_, rel_embed_ = model(triplets, ent_embed, rel_embed, nodes, edges)
             loss = loss_func2(triplets, args.negative_rate, ent_embed_, rel_embed_, device=args.device)
 
             # loss.backward(retain_graph=True)
@@ -117,7 +116,7 @@ def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val:
         writer.add_scalar("Train Loss", loss, epoch)
 
         model.eval()
-        validate(model, ent_embed, rel_embed, kg_val, total_triplets, 100, 'cuda')
+        validate(model, kg_val, total_triplets, 100, 'cuda')
 
     return loss
 
@@ -125,5 +124,5 @@ if __name__ == '__main__':
 
     kg_train, kg_test, kg_val = load_fb15k237()
 
-    args = Args(100, 200, 100, 4, 100, 2000, 0.01, 10, 'cuda', 'sgd')
+    args = Args(100, 200, 100, 4, 100, 1000, 0.01, 10, 'cuda', 'sgd')
     train(args, kg_train, kg_test, kg_val)
