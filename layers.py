@@ -61,10 +61,17 @@ class KGAtt(nn.Module):
 
         self.special_spmm_final = SpecialSpmmFinal()
 
+
+        self.ent_embed = torch.randn(n_entities, out_dim).to(device)
+        self.rel_embed = torch.randn(n_relations, out_dim).to(device)
+
     def forward(self, triplets, ent_embed, rel_embed):
         triplets = triplets.to(self.device)
         ent_embed = ent_embed.to(self.device)
         rel_embed = rel_embed.to(self.device)
+
+        nodes = list(set([t.item() for t in torch.cat(( triplets[:, 0], triplets[:, 1] ))]))
+        # edges = list(set([t.item() for t in triplets[:, 2]]))
 
         N = self.n_entities
 
@@ -89,22 +96,35 @@ class KGAtt(nn.Module):
         # h_sum = torch.sparse.sum(h_, dim=1)
 
         h_sum = self.special_spmm_final(edges, temp1,  N, e_b.shape[0], self.out_dim)
-        # print("sup")
 
         hs = h_sum
         ebs = e_b_sum
         ebs[ebs == 0] = 1e-12
 
         # out = h_sum.div(e_b_sum)
-        h_ent = hs / ebs
+        h_ent_ = hs / ebs
 
         index = triplets[:, 2]
         h_rel = scatter(temp1, index=index, dim=0, reduce="mean") # SUCH A LIFESAVER!
 
+        # h_ent = h_ent_
+
+        # Hacky AF. Sigh
+        self.ent_embed[nodes] = h_ent_[nodes]
+        # h_ent = self.ent_embed
+
+        # self.rel_embed[edges] = h_rel[edges]
+        # h_rel = self.rel_embed
+
+        # if self.concat:
+        #     return F.elu(h_ent), F.elu(h_rel)
+        # else:
+        #     return h_ent, h_rel
+
         if self.concat:
-            return F.elu(h_ent), F.elu(h_rel)
+            return F.elu(self.ent_embed), F.elu(h_rel)
         else:
-            return h_ent, h_rel
+            return self.ent_embed, h_rel
 
 
 class MultiHeadKGAtt(nn.Module):

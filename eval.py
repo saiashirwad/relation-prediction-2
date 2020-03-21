@@ -140,6 +140,9 @@ def validate(model: nn.Module, ent_embed, rel_embed, kg: KnowledgeGraph, total_t
     print(f'Head Rank Mean : {head_rank_mean} | Hits@10 : {head_hits_10_raw}')
     print(f'Tail Rank Mean : {tail_rank_mean} | Hits@10 : {tail_hits_10_raw}')
 
+    print(f'Filtered Head Rank Mean: {filtered_head_rank_mean}')
+    print(f'Filtered Tail Rank MEan: {filtered_tail_rank_mean}')
+
 
     print()
 
@@ -166,82 +169,3 @@ def calc_rank(in_queue: mp.JoinableQueue, out_queue):
 
             src_rank_raw, dst_rank_raw, src_rank_filter, dst_rank_filter = [0] * 4
             pass 
-
-
-
-
-
-
-
-
-
-
-#         loss_h = torch.norm(ent_embed_ + rel_ - dst_, 2, 1)
-#         loss_t = torch.norm(src_ + rel_ - ent_embed_, 2, 1)
-
-#         rankH = torch.nonzero(F.relu(loss - loss_h)).shape[0]
-#         rankT = torch.nonzero(F.relu(loss - loss_t)).shape[0]
-
-#         rankHs.append(rankH)
-#         rankTs.append(rankT)
-    
-#     print(sum(rankHs) / len(rankHs))
-#     print(sum(rankTs) / len(rankTs))
-#     v = (sum(rankHs)/len(rankHs)) + (sum(rankTs)/len(rankTs))
-#     print(v/2)
-
-        
-
-# def validate(model: nn.Module, embeddings: List[nn.Module], kg: KnowledgeGraph):
-#     hits_at_1 = 0.0 
-#     hits_at_3 = 0.0 
-#     hits_at_10 = 0.0 
-#     mrr = 0.0 
-
-#     dataloader = DataLoader(kg, 10)
-#     for i, batch in enumerate(dataloader): 
-
-
-
-
-# def validate(model: nn.Module, ent_embed, rel_embed, kg: KnowledgeGraph, batch_size=1000, device='cuda'):
-#     batch_size = 1
-#     dataloader = DataLoader(kg, batch_size, shuffle=False)
-
-#     hits = [[] for _ in range(10)]
-#     ranks = [] 
-
-#     rankHs, rankTs = [], []
-
-#     # model.eval()
-#     for i, batch in enumerate(dataloader):
-#         if i > 200:
-#             break
-
-#         h = batch[0]
-#         t = batch[1]
-#         r = batch[2]
-#         batch[0] = torch.cat([h, t])
-#         batch[1] = torch.cat([t, h])
-#         batch[2] = torch.cat([r, r])
-
-        
-#         src, dst, rel = batch
-
-#         triplets = torch.stack(batch).t().to(device)
-
-#         ent_embed_, rel_embed_ = model(triplets, ent_embed, rel_embed)
-
-#         if device == 'cuda':
-#             src = src.to(device)
-#             dst = dst.to(device)
-#             rel = rel.to(device)
-        
-#         src = ent_embed_[src]
-#         dst = ent_embed_[dst]
-#         rel = rel_embed_[rel]
-
-#         print()
-
-
-        
