@@ -79,12 +79,12 @@ def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val:
 
         for i, batch in enumerate(dataloader):
 
-            h = batch[0]
-            t = batch[1]
-            r = batch[2]
-            batch[0] = torch.cat([h, t])
-            batch[1] = torch.cat([t, h])
-            batch[2] = torch.cat([r, r])
+            # h = batch[0]
+            # t = batch[1]
+            # r = batch[2]
+            # batch[0] = torch.cat([h, t])
+            # batch[1] = torch.cat([t, h])
+            # batch[2] = torch.cat([r, r])
     
             triplets = torch.stack(batch)
             triplets, labels, nodes, edges = negative_sampling(triplets, n_ent, args.negative_rate)
