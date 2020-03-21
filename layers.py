@@ -148,6 +148,9 @@ class MultiHeadKGAtt(nn.Module):
         self.fc1 = nn.Linear(in_dim, num_heads * hidden_dim).to(device)
         self.fc2 = nn.Linear(num_heads * hidden_dim, out_dim).to(device)
 
+    def get_embeddings(self):
+        return self.att2.get_embeddings()
+
     def forward(self, triplets, ent_embed, rel_embed, nodes=None, edges=None):
         att1_out = [a(triplets, ent_embed, rel_embed, nodes, edges) for a in self.att1]
         h_ent = torch.cat([a[0] for a in att1_out], dim=1)
