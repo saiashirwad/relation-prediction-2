@@ -107,24 +107,24 @@ class KGAtt(nn.Module):
         index = triplets[:, 2]
         h_rel = scatter(temp1, index=index, dim=0, reduce="mean") # SUCH A LIFESAVER!
 
-        # h_ent = h_ent_
+        h_ent = h_ent_
 
         # Hacky AF. Sigh
-        self.ent_embed[nodes] = h_ent_[nodes]
+        # self.ent_embed[nodes] = h_ent_[nodes]
         # h_ent = self.ent_embed
 
         # self.rel_embed[edges] = h_rel[edges]
         # h_rel = self.rel_embed
 
-        # if self.concat:
-        #     return F.elu(h_ent), F.elu(h_rel)
-        # else:
-        #     return h_ent, h_rel
-
         if self.concat:
-            return F.elu(self.ent_embed), F.elu(h_rel)
+            return F.elu(h_ent), F.elu(h_rel)
         else:
-            return self.ent_embed, h_rel
+            return h_ent, h_rel
+
+        # if self.concat:
+        #     return F.elu(self.ent_embed), F.elu(h_rel)
+        # else:
+        #     return self.ent_embed, h_rel
 
 
 class MultiHeadKGAtt(nn.Module):

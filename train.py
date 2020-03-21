@@ -98,7 +98,8 @@ def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val:
             ent_embed_, rel_embed_ = model(triplets, ent_embed, rel_embed)
             loss = loss_func2(triplets, args.negative_rate, ent_embed_, rel_embed_, device=args.device)
 
-            loss.backward(retain_graph=True)
+            # loss.backward(retain_graph=True)
+            loss.backward()
             optimizer.step()
             # print(f"Finished {time.time() - start}")
 
