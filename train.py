@@ -115,8 +115,9 @@ def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val:
         print(f'Epoch {epoch} Loss: {loss}')
         writer.add_scalar("Train Loss", loss, epoch)
 
-        model.eval()
-        validate(model, kg_val, total_triplets, 100, 'cuda')
+        if i > 10:
+            model.eval()
+            validate(model, kg_val, total_triplets, 100, 'cuda')
 
     return loss
 
