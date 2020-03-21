@@ -62,8 +62,8 @@ class KGAtt(nn.Module):
         self.special_spmm_final = SpecialSpmmFinal()
 
 
-        self.ent_embed = torch.randn(n_entities, out_dim).to(device)
-        self.rel_embed = torch.randn(n_relations, out_dim).to(device)
+        # self.ent_embed = torch.randn(n_entities, out_dim).to(device)
+        # self.rel_embed = torch.randn(n_relations, out_dim).to(device)
 
     def forward(self, triplets, ent_embed, rel_embed):
         triplets = triplets.to(self.device)
