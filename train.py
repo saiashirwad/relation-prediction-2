@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from dataloader import load_fb15k237
 from knowledgegraph import KnowledgeGraph
 
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 
 import time
 
@@ -38,12 +38,13 @@ def get_valid_triplets(kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val
 
 
 
-
-def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val: KnowledgeGraph):
+def train_kgatt(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val: KnowledgeGraph, total_triplets=None):
 
     n_ent, n_rel = kg_train.n_ent, kg_train.n_rel
 
-    total_triplets = get_valid_triplets(kg_train, kg_test, kg_val)
+    if total_triplets is None:
+        total_triplets = get_valid_triplets(kg_train, kg_test, kg_val)
+
 
     # h = kg_train.head_idx
     # t = kg_train.tail_idx
@@ -54,7 +55,7 @@ def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val:
     # kg_train.relations = r + r
     # kg_train.n_facts = 2 * kg_train.n_facts
 
-    writer = SummaryWriter("runs/train1")
+    # writer = SummaryWriter("runs/train1")
 
     dataloader = DataLoader(kg_train, batch_size=args.batch_size, shuffle=False, pin_memory=cuda.is_available())
     model = MultiHeadKGAtt(n_ent, n_rel, 100, 200, 100, args.num_heads, device=args.device).to(args.device)
@@ -113,7 +114,7 @@ def train(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val:
 
         loss = sum(losses) / (len(losses))
         print(f'Epoch {epoch} Loss: {loss}')
-        writer.add_scalar("Train Loss", loss, epoch)
+        # writer.add_scalar("Train Loss", loss, epoch)
 
         if epoch > 10:
             model.eval()
@@ -126,4 +127,4 @@ if __name__ == '__main__':
     kg_train, kg_test, kg_val = load_fb15k237()
 
     args = Args(100, 200, 100, 4, 100, 2000, 0.01, 10, 'cuda', 'sgd')
-    train(args, kg_train, kg_test, kg_val)
+    train_kgatt(args, kg_train, kg_test, kg_val)
