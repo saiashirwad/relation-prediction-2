@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torch_scatter import scatter 
+from torch_scatter import scatter
 
 import numpy as np
 
@@ -64,7 +64,7 @@ class KGAtt(nn.Module):
 
         self.ent_embed = torch.randn(n_entities, out_dim).to(device).detach()
         self.rel_embed = torch.randn(n_relations, out_dim).to(device).detach()
-    
+
     def get_embeddings(self):
         return self.ent_embed, self.rel_embed
 
@@ -123,12 +123,6 @@ class KGAtt(nn.Module):
             return F.elu(h_ent), F.elu(h_rel)
         else:
             return h_ent, h_rel
-
-        # if self.concat:
-        #     return F.elu(self.ent_embed), F.elu(h_rel)
-        # else:
-        #     return self.ent_embed, h_rel
-
 
 class MultiHeadKGAtt(nn.Module):
     def __init__(self, n_entities, n_relations, in_dim, hidden_dim, out_dim, num_heads, device='cpu'):

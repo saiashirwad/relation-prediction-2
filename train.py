@@ -32,7 +32,6 @@ def get_valid_triplets(kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val
             triplets.add((kg.head_idx[i], kg.tail_idx[i], kg.relations[i]))
             if reverse:
                 triplets.add((kg.tail_idx[i], kg.head_idx[i], kg.relations[i]))
-    
     print(f'Number of unique triplets: {len(triplets)}')
     return triplets
 
@@ -44,18 +43,6 @@ def train_kgatt(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, k
 
     if total_triplets is None:
         total_triplets = get_valid_triplets(kg_train, kg_test, kg_val)
-
-
-    # h = kg_train.head_idx
-    # t = kg_train.tail_idx
-    # r = kg_train.relations
-
-    # kg_train.head_idx = h + t
-    # kg_train.tail_idx = t + h
-    # kg_train.relations = r + r
-    # kg_train.n_facts = 2 * kg_train.n_facts
-
-    # writer = SummaryWriter("runs/train1")
 
     dataloader = DataLoader(kg_train, batch_size=args.batch_size, shuffle=False, pin_memory=cuda.is_available())
     model = MultiHeadKGAtt(n_ent, n_rel, 100, 200, 100, args.num_heads, device=args.device).to(args.device)
@@ -80,13 +67,6 @@ def train_kgatt(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, k
 
         for i, batch in enumerate(dataloader):
 
-            # h = batch[0]
-            # t = batch[1]
-            # r = batch[2]
-            # batch[0] = torch.cat([h, t])
-            # batch[1] = torch.cat([t, h])
-            # batch[2] = torch.cat([r, r])
-    
             triplets = torch.stack(batch)
             triplets, labels, nodes, edges = negative_sampling(triplets, n_ent, args.negative_rate)
             triplets, labels = triplets.to(args.device), labels.to(args.device)
@@ -126,5 +106,5 @@ if __name__ == '__main__':
 
     kg_train, kg_test, kg_val = load_fb15k237()
 
-    args = Args(100, 200, 100, 4, 100, 2000, 0.01, 10, 'cuda', 'sgd')
+    args = Args(100, 200, 100, 4, 100, 2000, 0.01, 10, 'cpu', 'sgd')
     train_kgatt(args, kg_train, kg_test, kg_val)
