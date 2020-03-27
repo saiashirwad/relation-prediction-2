@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import cuda
-from torch.optim import Adam, SGD, AdamW
+#from torch.optim import Adam, SGD, AdamW
+from torch.optim import Adam, SGD 
 from torch.utils.data import DataLoader
 
 from dataloader import load_fb15k237
