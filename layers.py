@@ -65,8 +65,14 @@ class KGAtt(nn.Module):
         self.ent_embed = torch.randn(n_entities, out_dim).to(device).detach()
         self.rel_embed = torch.randn(n_relations, out_dim).to(device).detach()
 
+        # self.rel_out = nn.Linear(out_dim, out_dim)
+        # nn.init.xavier_normal_(self.rel_out.weight, gain=1.414)
+        # self.ent_out = nn.Linear(out_dim, out_dim)
+        # nn.init.xavier_normal_(self.ent_out.weight, gain=1.414)
+
     def get_embeddings(self):
         return self.ent_embed, self.rel_embed
+        # return self.ent_out.weight, self.rel_out.weight
 
     def forward(self, triplets, ent_embed, rel_embed, nodes_=None, edges_=None):
         triplets = triplets.to(self.device)
@@ -118,6 +124,9 @@ class KGAtt(nn.Module):
 
         self.rel_embed[edges_] = h_rel[edges_]
         # h_rel = self.rel_embed
+
+        # h_ent = self.ent_out(h_ent)
+        # h_rel = self.rel_out(h_rel)
 
         if self.concat:
             return F.elu(h_ent), F.elu(h_rel)

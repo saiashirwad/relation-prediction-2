@@ -21,12 +21,10 @@ from layers import MultiHeadKGAtt
 from gat import KGAT
 from load_data import negative_sampling, get_init_embed, get_batch_neighbors, add_inverted_triplets
 from loss import loss_func, loss_func2
-from eval import validate
+from eval import validate2
 
 Args = namedtuple('args', ['in_dim', 'hidden_dim', 'out_dim', 'num_heads', 'n_epochs', 'batch_size', 'lr', 'negative_rate', 'device', 'optimizer'])
 
-def a():
-    return 11
 
 def get_valid_triplets(kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, kg_val: KnowledgeGraph, reverse=True):
     triplets = set()
@@ -65,8 +63,8 @@ def train_kgatt(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, k
     for epoch in range(args.n_epochs):
 
         losses = []
-        ent_embeds = [0]
-        rel_embeds = [0]
+        # ent_embeds = [0]
+        # rel_embeds = [0]
 
         for i, batch in enumerate(dataloader):
 
@@ -82,26 +80,29 @@ def train_kgatt(args: Args, kg_train: KnowledgeGraph, kg_test: KnowledgeGraph, k
             loss = loss_func2(triplets, args.negative_rate, ent_embed_, rel_embed_, device=args.device)
 
             # loss.backward(retain_graph=True)
+            del(ent_embed_)
+            del(rel_embed_)
             loss.backward()
             optimizer.step()
             # print(f"Finished {time.time() - start}")
 
             losses.append(loss.item())
 
-            ent_embeds[0] = ent_embed_
-            rel_embeds[0] = rel_embed_
+            # ent_embeds[0] = ent_embed_
+            # rel_embeds[0] = rel_embed_
 
             # if i % 100 == 0:
             #     print(loss.item())
             # print(loss.item())
 
+            torch.cuda.empty_cache()
+
         loss = sum(losses) / (len(losses))
         print(f'Epoch {epoch} Loss: {loss}')
         # writer.add_scalar("Train Loss", loss, epoch)
 
-        if epoch > 10:
-            model.eval()
-            validate(model, kg_val, total_triplets, 100, 'cuda')
+        model.eval()
+        validate2(model, kg_val, total_triplets, 100, 'cuda', ent_embed, rel_embed)
 
     return loss
 
@@ -109,5 +110,5 @@ if __name__ == '__main__':
 
     kg_train, kg_test, kg_val = load_fb15k237()
 
-    args = Args(100, 200, 100, 4, 100, 4000, 0.01, 10, 'cuda', 'sgd')
+    args = Args(100, 200, 100, 2, 100, 2000, 0.01, 10, 'cuda', 'sgd')
     train_kgatt(args, kg_train, kg_test, kg_val)
