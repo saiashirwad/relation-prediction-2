@@ -7,10 +7,8 @@ from torch_scatter import scatter
 import numpy as np
 
 class SpecialSpmmFunctionFinal(torch.autograd.Function):
-    """Special function for only sparse region backpropataion layer."""
     @staticmethod
     def forward(ctx, edge, edge_w, N, E, out_features):
-        # assert indices.requires_grad == False
         a = torch.sparse_coo_tensor(
             edge, edge_w, torch.Size([N, N, out_features]))
         b = torch.sparse.sum(a, dim=1)
